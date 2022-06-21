@@ -2,7 +2,6 @@ import { AxiosPromise, AxiosResponse } from 'axios';
 
 interface ModalAttributes<T> {
   set(value: T): void;
-  setProp(key: keyof T, value: T[keyof T]): void;
   getAll(): T;
   get(key: keyof T): T[keyof T];
 }
@@ -30,11 +29,6 @@ export class Model<T> {
 
   set(update: T): void {
     this.attrs.set(update);
-    this.events.trigger('change');
-  }
-
-  setProp(key: keyof T, value: T[keyof T]): void {
-    this.attrs.set({ ...this.attrs.getAll(), [key]: value });
     this.events.trigger('change');
   }
 

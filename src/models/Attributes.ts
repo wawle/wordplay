@@ -9,10 +9,6 @@ export class Attributes<T> {
     Object.assign(this.data, updateData);
   };
 
-  setProp = (key: keyof T, value: T[keyof T]): void => {
-    this.data[key] = value;
-  };
-
   getAll = (): T => {
     return this.data;
   };
