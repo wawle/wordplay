@@ -1,0 +1,12 @@
+{
+  "devDependencies": {
+    "typescript": "^4.7.3"
+  },
+  "dependencies": {
+    "axios": "^0.27.2"
+  },
+  "scripts": {
+    "start:db": "json-server --watch db.json --port 3000",
+    "start:parcel": "parcel serve index.html"
+  }
+}
