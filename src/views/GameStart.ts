@@ -1,55 +1,91 @@
-import { Answer, Game, GameProps } from '../models/Game';
-import { Level, Type } from '../utils/enum';
-import { GameInitUI } from './GameInitUI';
-import { View } from './View';
-import nameList from '../../data/names.json';
+import { WordProps, Game, GameProps } from "../models/Game";
+import { Level, Type } from "../utils/enum";
+import { GameInitUI } from "./GameInitUI";
+import { View } from "./View";
+import nameList from "../../data/names.json";
+import { Timer } from "../models/Timer";
+import { WordList } from "./WordList";
+import { Collection } from "../models/Collection";
+import { Word } from "../models/Word";
 
 export class GameStart extends View<Game, GameProps> {
   eventsMap(): { [key: string]: () => void } {
     return {
-      'click:.play-again-btn': this.onPlayAgainClick,
-      'click:.game-start-btn': this.onGameStartClick,
+      "click:.play-again-btn": this.onPlayAgainClick,
+      "click:.game-start-btn": this.onGameStartClick,
     };
   }
 
-  answerListHandler(answer: string, type: Type): void {
-    const currentAnswer = {
-      word: answer,
-      type: type,
+  onPlayAgainClick = (): void => {
+    const newGame = Game.build({
+      level: Level.Easy,
+      words: [],
+    });
+    const gameInitUI = new GameInitUI(this.parent, newGame);
+    gameInitUI.render();
+  };
+
+  gameOver() {}
+
+  wordListHandler(word: string, type: Type): void {
+    const currentWord = {
+      word,
+      type,
     };
 
-    const answerList = this.model.get('answers') as Answer[];
-    answerList.push(currentAnswer);
-    this.model.set({ answers: answerList });
-    this.createNewLine(answer, type);
-  }
+    const wordList = this.model.get("words") as WordProps[];
+    this.model.set({ words: [...wordList, currentWord] });
 
-  createNewLine(value: string, type: Type): void {
-    const userAnswersList = document.querySelector(
-      '.user-answers-list'
-    ) as HTMLElement;
-    const computerAnswersList = document.querySelector(
-      '.computer-answers-list'
-    ) as HTMLElement;
+    const userWordList = document.querySelector("#user-word-list");
+    const cpWordList = document.querySelector("#cp-word-list");
 
-    const li = document.createElement('li');
-    li.textContent = value;
+    if (!userWordList || !cpWordList) {
+      throw new Error("Word List Error");
+    }
+
     if (type === Type.User) {
-      userAnswersList.appendChild(li);
+      const userWords = this.model
+        .get("words")
+        .filter((word) => word.type === Type.User);
+
+      const wordList = userWords.map((word) => Word.build(word));
+      const userWordCollection = new Collection<Word, WordProps>(wordList);
+      const userWordHistory = new WordList(cpWordList, userWordCollection);
+      userWordHistory.render();
     }
 
     if (type === Type.Computer) {
-      computerAnswersList.appendChild(li);
+      const computerWords: WordProps[] = this.model
+        .get("words")
+        .filter((word) => word.type === Type.Computer);
+
+      const wordList = computerWords.map((word) => Word.build(word));
+      const computerWordCollection = new Collection<Word, WordProps>(wordList);
+      const cpWordHistory = new WordList(cpWordList, computerWordCollection);
+      cpWordHistory.render();
     }
   }
 
-  answerIsCorrect(answer: string): boolean {
-    // get last word from answers
-    const answers = this.model.get('answers') as Answer[];
-    const lastAnswer = answers[answers.length - 1];
+  playWord(word: string): void {
+    const utterance = new SpeechSynthesisUtterance(word);
+    const language = this.model.get("recognition").lang;
+    utterance.rate = 1;
+    utterance.lang = language;
+    speechSynthesis.speak(utterance);
+  }
 
-    // check last char of answer and first char of last answer is the same
-    return answer.charAt(answer.length - 1) === lastAnswer.word.charAt(0);
+  wordIsCorrect(word: string): boolean {
+    const words = this.model.get("words") as WordProps[];
+    // check if it is first word then return true
+    if (words.length === 0) {
+      return true;
+    }
+
+    // get last word from words
+    const lastword = words[words.length - 1];
+
+    // check last char of word and first char of last word is the same
+    return word.charAt(word.length - 1) === lastword.word.charAt(0);
   }
 
   pickRandomWord(): string {
@@ -58,20 +94,72 @@ export class GameStart extends View<Game, GameProps> {
     return words[randomIndex];
   }
 
-  onGameStartClick = (): void => {
-    const computerAnswer = this.pickRandomWord();
-    this.answerListHandler(computerAnswer, Type.Computer);
-    console.log(computerAnswer);
-    console.log(this.model);
-  };
+  disableElementHandler(): void {
+    const startBtn = document.querySelector(".game-start-btn");
 
-  onPlayAgainClick = (): void => {
-    const newGame = Game.build({
-      level: Level.Easy,
-      answers: [],
+    if (startBtn) {
+      startBtn.setAttribute("disabled", "true");
+    }
+  }
+
+  elementHandlerByTurnOwner(owner: Type) {
+    const turnTitle = document.querySelector("#turn-title");
+    const ownerName = owner === Type.Computer ? "Computer" : "User";
+    if (turnTitle) {
+      turnTitle.innerHTML = `${ownerName} Turn`;
+    }
+  }
+
+  computerTurn(): void {
+    this.elementHandlerByTurnOwner(Type.Computer);
+    const computerWord = this.pickRandomWord();
+    const isValidWord = this.wordIsCorrect(computerWord);
+
+    if (!isValidWord) {
+      return this.gameOver();
+    }
+
+    this.playWord(computerWord);
+
+    this.wordListHandler(computerWord, Type.Computer);
+    const computerInput = document.querySelector("#computer-input");
+
+    if (computerInput) {
+      computerInput.setAttribute("value", computerWord);
+    }
+
+    return this.userTurn();
+  }
+
+  userTurn(): void {
+    const turnTitle = document.querySelector("#turn-title");
+    const timerEl = document.querySelector("#timer");
+    if (turnTitle) {
+      turnTitle.innerHTML = "User Turn";
+    }
+
+    const recognition = this.model.get("recognition");
+    recognition.start();
+
+    const timer = Timer.build({
+      remainingTime: 7,
+      timerElement: timerEl,
+      title: turnTitle,
     });
-    const gameInitUI = new GameInitUI(this.parent, newGame);
-    gameInitUI.render();
+
+    timer.init();
+
+    recognition.addEventListener("result", (e) => {
+      const word = e.results[0][0].transcript;
+      console.log({ e, word });
+      const isValidword = this.wordIsCorrect(word);
+      timer.onStop();
+    });
+  }
+
+  onGameStartClick = (): void => {
+    this.computerTurn();
+    this.disableElementHandler();
   };
 
   template(): string {
@@ -79,13 +167,15 @@ export class GameStart extends View<Game, GameProps> {
     <div> 
       <button class="play-again-btn">Play Again</button>
       <h1 id="title">Word Play</h1>
+      <h2 id="turn-title"></h2>
+      <h3 id="timer"></h3>
       <input type="text" value="-" name="user-input" id="user-input" />
       <br />
       <button class="game-start-btn">Start Game</button>
       <br />
       <input type="text" value="-" name="computer-input" id="computer-input" />
-      <ol class="user-answers-list"></ol>
-      <ol class="computer-answers-list"></ol>
+      <ol id="user-word-list"></ol>
+      <ol id="cp-word-list"></ol>
     </div>`;
   }
 }

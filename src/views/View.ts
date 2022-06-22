@@ -1,4 +1,4 @@
-import { Model } from '../models/Model';
+import { Model } from "../models/Model";
 
 export abstract class View<T extends Model<K>, K> {
   regions: { [key: string]: Element } = {};
@@ -18,6 +18,7 @@ export abstract class View<T extends Model<K>, K> {
   }
 
   bindModel(): void {
+    // like react useEffect componentDidUpdate
     // this.model.on('change', () => {
     //   this.render();
     // });
@@ -27,7 +28,7 @@ export abstract class View<T extends Model<K>, K> {
     const eventsMap = this.eventsMap();
 
     for (const eventName in eventsMap) {
-      const [eventType, selector] = eventName.split(':');
+      const [eventType, selector] = eventName.split(":");
 
       fragment.querySelectorAll(selector).forEach((element) => {
         element.addEventListener(eventType, eventsMap[eventName]);
@@ -51,8 +52,8 @@ export abstract class View<T extends Model<K>, K> {
   onRender(): void {}
 
   render(): void {
-    this.parent.innerHTML = '';
-    const templateElement = document.createElement('template');
+    this.parent.innerHTML = "";
+    const templateElement = document.createElement("template");
     templateElement.innerHTML = this.template();
     this.bindEvents(templateElement.content);
     this.mapRegions(templateElement.content);

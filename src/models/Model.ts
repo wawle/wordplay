@@ -1,4 +1,4 @@
-import { AxiosPromise, AxiosResponse } from 'axios';
+import { AxiosPromise, AxiosResponse } from "axios";
 
 interface ModalAttributes<T> {
   set(value: T): void;
@@ -29,7 +29,12 @@ export class Model<T> {
 
   set(update: T): void {
     this.attrs.set(update);
-    this.events.trigger('change');
+    this.events.trigger("change");
+  }
+
+  setProp(updateData: T[keyof T]): void {
+    Object.assign(this.attrs.getAll(), updateData);
+    this.events.trigger("change");
   }
 
   fetch(): void {
@@ -46,10 +51,10 @@ export class Model<T> {
     this.sync
       .save(this.attrs.getAll())
       .then((response: AxiosResponse): void => {
-        this.trigger('save');
+        this.trigger("save");
       })
       .catch((): void => {
-        this.trigger('error');
+        this.trigger("error");
       });
   }
 }

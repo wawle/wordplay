@@ -9,6 +9,8 @@ export class Attributes<T> {
     Object.assign(this.data, updateData);
   };
 
+  setProp = (data: T[keyof T]): void => {};
+
   getAll = (): T => {
     return this.data;
   };

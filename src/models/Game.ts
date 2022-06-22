@@ -1,19 +1,19 @@
-import { ApiSync } from './ApiSync';
-import { Attributes } from './Attributes';
-import { Events } from './Events';
-import { Model } from './Model';
-import nameList from '../../data/names.json';
-import { Type } from '../utils/enum';
+import { ApiSync } from "./ApiSync";
+import { Attributes } from "./Attributes";
+import { Events } from "./Events";
+import { Model } from "./Model";
+import { Type } from "../utils/enum";
 
-export type Answer = {
+export type WordProps = {
   word: string;
   type: Type.Computer | Type.User;
 };
 
 export type GameProps = {
   level?: number;
-  recognition?: string;
-  answers?: Answer[];
+  recognition?: any;
+  words?: WordProps[];
+  interval?: number;
 };
 
 export class Game extends Model<GameProps> {
@@ -21,7 +21,7 @@ export class Game extends Model<GameProps> {
     return new Game(
       new Attributes<GameProps>(attrs),
       new Events(),
-      new ApiSync('games')
+      new ApiSync("games")
     );
   }
 }

@@ -1,11 +1,11 @@
-import { Game, GameProps } from '../models/Game';
-import { GameStart } from './GameStart';
-import { View } from './View';
+import { Game, GameProps } from "../models/Game";
+import { GameStart } from "./GameStart";
+import { View } from "./View";
 
 export class GameInitUI extends View<Game, GameProps> {
   eventsMap(): { [key: string]: () => void } {
     return {
-      'click:.ready-btn': this.onReadyClick,
+      "click:.ready-btn": this.onReadyClick,
     };
   }
 
@@ -14,7 +14,7 @@ export class GameInitUI extends View<Game, GameProps> {
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!speechRecognition) {
-      throw new Error('Speech recognition not available');
+      throw new Error("Speech recognition not available");
     }
 
     const recognition = new speechRecognition({
@@ -33,10 +33,10 @@ export class GameInitUI extends View<Game, GameProps> {
     const checkedLevel = this.parent.querySelector(
       'input[name="level"]:checked'
     ) as HTMLInputElement;
-    const speaker = document.getElementById('speaker') as HTMLSelectElement;
+    const speaker = document.getElementById("speaker") as HTMLSelectElement;
 
     if (!checkedLevel || !speaker) {
-      throw new Error('Missing required fields ( level or speaker )');
+      throw new Error("Missing required fields ( level or speaker )");
     }
 
     const language = speaker.options[speaker.selectedIndex].value;
@@ -46,7 +46,7 @@ export class GameInitUI extends View<Game, GameProps> {
     const newGame = Game.build({
       level: level,
       recognition: recognition,
-      answers: [],
+      words: [],
     });
 
     const gameStartUI = new GameStart(this.parent, newGame);
