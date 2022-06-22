@@ -1,19 +1,30 @@
-import { ApiSync } from "./ApiSync";
-import { Attributes } from "./Attributes";
-import { Events } from "./Events";
-import { Model } from "./Model";
-import { Type } from "../utils/enum";
+import { ApiSync, Events, Attributes, Model } from "./common";
+import { Level, PlayerType } from "../utils/enum";
 
 export type WordProps = {
   word: string;
-  type: Type.Computer | Type.User;
+  type: PlayerType;
+};
+
+export type HighScores = {
+  easy: number;
+  medium: number;
+  hard: number;
 };
 
 export type GameProps = {
-  level?: number;
+  level?: Level;
   recognition?: any;
   words?: WordProps[];
   interval?: number;
+  userWord?: string;
+  computerWord?: string;
+  recognize?: boolean;
+  gameOver?: boolean;
+  highScores?: HighScores;
+  turnTitle?: string;
+  title?: string;
+  gameStart?: boolean;
 };
 
 export class Game extends Model<GameProps> {
@@ -21,7 +32,7 @@ export class Game extends Model<GameProps> {
     return new Game(
       new Attributes<GameProps>(attrs),
       new Events(),
-      new ApiSync("games")
+      new ApiSync("data")
     );
   }
 }

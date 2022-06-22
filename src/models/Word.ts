@@ -1,12 +1,12 @@
-import { ApiSync } from "./ApiSync";
-import { Attributes } from "./Attributes";
-import { Events } from "./Events";
-import { Model } from "./Model";
-import { Type } from "../utils/enum";
+import { ApiSync } from "./common/ApiSync";
+import { Attributes } from "./common/Attributes";
+import { Events } from "./common/Events";
+import { Model } from "./common/Model";
+import { PlayerType } from "../utils/enum";
 
 export type WordProps = {
   word: string;
-  type: Type.Computer | Type.User;
+  type: PlayerType;
 };
 
 export class Word extends Model<WordProps> {

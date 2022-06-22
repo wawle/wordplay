@@ -1,11 +1,12 @@
-import { Game, GameProps } from '../models/Game';
-import { GameInitUI } from './GameInitUI';
-import { View } from './View';
+import { Game, GameProps } from "../models/Game";
+import { GameInitUI } from "./GameInitUI";
+import { View } from "./common/View";
+import { Level } from "../utils/enum";
 
 export class WordPlay extends View<Game, GameProps> {
   regionsMap(): { [key: string]: string } {
     return {
-      gameInit: '.game-init',
+      gameInit: ".game-init",
     };
   }
 

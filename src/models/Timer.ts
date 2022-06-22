@@ -1,7 +1,4 @@
-import { ApiSync } from "./ApiSync";
-import { Attributes } from "./Attributes";
-import { Events } from "./Events";
-import { Model } from "./Model";
+import { ApiSync, Events, Attributes, Model } from "./common";
 
 export type TimerProps = {
   remainingTime: number;

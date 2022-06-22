@@ -5,11 +5,11 @@ export enum Level {
 }
 
 export enum Language {
-  English = 'en-US',
-  Turkish = 'tr-TR',
+  Turkish = "tr-TR",
+  English = "en-US",
 }
 
-export enum Type {
-  Computer,
-  User,
+export enum PlayerType {
+  Computer = "Computer",
+  User = "User",
 }
