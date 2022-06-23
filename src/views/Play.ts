@@ -189,27 +189,31 @@ export class Play extends View<Game, GameProps> {
       throw new Error("Word List Error");
     }
 
-    // get user word history list
-    const userWords = this.model
-      .get("words")
-      .filter((word: WordProps) => word.type === PlayerType.User);
+    if (type === PlayerType.User) {
+      // get user word history list
+      const userWords = this.model
+        .get("words")
+        .filter((word: WordProps) => word.type === PlayerType.User);
 
-    const userWordList = userWords.map((word: WordProps) => Word.build(word));
-    // create a User word List Collection to render
-    const userWordCollection = new Collection<Word, WordProps>(userWordList);
-    // create a WordList component to render user word history list
-    const userWordHistory = new WordList(userWordListEl, userWordCollection);
-    userWordHistory.render();
+      const userWordList = userWords.map((word: WordProps) => Word.build(word));
+      // create a User word List Collection to render
+      const userWordCollection = new Collection<Word, WordProps>(userWordList);
+      // create a WordList component to render user word history list
+      const userWordHistory = new WordList(userWordListEl, userWordCollection);
+      userWordHistory.render();
+    } else {
+      // get computer word history list
+      const computerWords: WordProps[] = this.model
+        .get("words")
+        .filter((word: WordProps) => word.type === PlayerType.Computer);
 
-    // get computer word history list
-    const computerWords: WordProps[] = this.model
-      .get("words")
-      .filter((word: WordProps) => word.type === PlayerType.Computer);
-
-    const cpWordList = computerWords.map((word) => Word.build(word));
-    const computerWordCollection = new Collection<Word, WordProps>(cpWordList);
-    const cpWordHistory = new WordList(cpWordListEl, computerWordCollection);
-    cpWordHistory.render();
+      const cpWordList = computerWords.map((word) => Word.build(word));
+      const computerWordCollection = new Collection<Word, WordProps>(
+        cpWordList
+      );
+      const cpWordHistory = new WordList(cpWordListEl, computerWordCollection);
+      cpWordHistory.render();
+    }
   }
 
   checkUserAnswer(): boolean {
