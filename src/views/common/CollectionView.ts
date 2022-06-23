@@ -9,7 +9,7 @@ export abstract class CollectionView<T, K> {
     this.parent.innerHTML = "";
     const templateElement = document.createElement("template");
 
-    for (let model of this.collection.models) {
+    for (const model of this.collection.models) {
       const itemElement = document.createElement("div");
       this.renderItem(model, itemElement);
       templateElement.content.append(itemElement);

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-types */
+
 export class Events {
   events: {
     [key: string]: Function[];

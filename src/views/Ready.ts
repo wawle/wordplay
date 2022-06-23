@@ -9,7 +9,7 @@ export class Ready extends View<Game, GameProps> {
     };
   }
 
-  onInitSpeechRecognition(language: string): any {
+  onInitSpeechRecognition(language: string): SpeechRecognitionAlternative {
     const speechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 

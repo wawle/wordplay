@@ -1,7 +1,7 @@
 import axios, { AxiosPromise } from "axios";
 
 export class ApiSync<T> {
-  public rootUrl: string = "http://localhost:3000";
+  public rootUrl = "http://localhost:3000";
   constructor(public resource?: string) {}
 
   fetch(): AxiosPromise<T> {

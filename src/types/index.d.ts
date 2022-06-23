@@ -2,8 +2,8 @@ export {};
 
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-    SpeechRecognitionEvent: any;
+    SpeechRecognition: SpeechRecognition;
+    webkitSpeechRecognition: SpeechRecognition;
+    SpeechRecognitionEvent: SpeechRecognitionEvent;
   }
 }

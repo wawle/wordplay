@@ -1,4 +1,4 @@
-import { WordProps, Game, GameProps, HighScores } from "../models/Game";
+import { WordProps, Game, GameProps } from "../models/Game";
 import { Language, Level, PlayerType } from "../utils/enum";
 import { Ready } from "./Ready";
 import nameList from "../../names.json";
@@ -38,7 +38,7 @@ export class Play extends View<Game, GameProps> {
 
   onPickInitialValue(): void {
     // pick a random word for computer
-    let initialComputerAnswer =
+    const initialComputerAnswer =
       nameList[Math.floor(Math.random() * nameList.length)];
 
     // add initialWord to word history list
@@ -58,7 +58,7 @@ export class Play extends View<Game, GameProps> {
     this.model.set({ computerWord: initialComputerAnswer });
   }
 
-  onUserRecord(e): void {
+  onUserRecord(e: SpeechRecognitionResult): void {
     // select inputs and title
     const computerInput = document.querySelector("#computer-input");
     const userInput = document.querySelector("#user-input");
@@ -69,8 +69,10 @@ export class Play extends View<Game, GameProps> {
       throw new Error("Computer Input || Turn Title || User Input Error");
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { results }: any = e;
     // get user word
-    const userWord = e.results[0][0].transcript.toLocaleLowerCase();
+    const userWord = results[0][0].transcript.toLocaleLowerCase();
     // set user word to model
     this.model.set({ userWord });
 
@@ -119,7 +121,7 @@ export class Play extends View<Game, GameProps> {
     turnTitle.prepend(timer);
     // set the time for next turn
     let remainingSecond = 7;
-    let interval = setInterval(function () {
+    const interval = setInterval(function () {
       // update timer element by remainingSecond
       timer.innerHTML = `Remaining Time: ${remainingSecond}`;
       // decrease one on each second
@@ -155,7 +157,7 @@ export class Play extends View<Game, GameProps> {
 
     const recognition = this.model.get("recognition");
 
-    recognition.addEventListener("result", (e) => {
+    recognition.addEventListener("result", (e: SpeechRecognitionResult) => {
       this.onUserRecord(e);
     });
   }
@@ -190,9 +192,9 @@ export class Play extends View<Game, GameProps> {
     // get user word history list
     const userWords = this.model
       .get("words")
-      .filter((word) => word.type === PlayerType.User);
+      .filter((word: WordProps) => word.type === PlayerType.User);
 
-    const userWordList = userWords.map((word) => Word.build(word));
+    const userWordList = userWords.map((word: WordProps) => Word.build(word));
     // create a User word List Collection to render
     const userWordCollection = new Collection<Word, WordProps>(userWordList);
     // create a WordList component to render user word history list
@@ -202,7 +204,7 @@ export class Play extends View<Game, GameProps> {
     // get computer word history list
     const computerWords: WordProps[] = this.model
       .get("words")
-      .filter((word) => word.type === PlayerType.Computer);
+      .filter((word: WordProps) => word.type === PlayerType.Computer);
 
     const cpWordList = computerWords.map((word) => Word.build(word));
     const computerWordCollection = new Collection<Word, WordProps>(cpWordList);
@@ -215,7 +217,7 @@ export class Play extends View<Game, GameProps> {
     const computerWord = this.model.get("computerWord");
 
     // get all words except last word of user
-    const words = this.model.get("words").map((item) => item.word);
+    const words = this.model.get("words").map((item: WordProps) => item.word);
     words.splice(-1);
 
     // get last char of the computer word
@@ -294,11 +296,14 @@ export class Play extends View<Game, GameProps> {
   }
 
   saveHighScore(userWordCount: number): void {
-    const highScores: HighScores = this.model.get("highScores");
+    const highScores = this.model.get("highScores");
     const level = this.model.get("level");
 
     // get Level type from level value
-    const levelType = Object.keys(Level).find((key) => Level[key] === level);
+    const levelType = Object.keys(Level).find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (key: any) => Level[key] === level
+    );
 
     if (!levelType) {
       throw new Error("Level Type Error");
@@ -315,7 +320,7 @@ export class Play extends View<Game, GameProps> {
     // get word count by user
     const userWordCount = this.model
       .get("words")
-      .filter((word) => word.type === PlayerType.User).length;
+      .filter((word: WordProps) => word.type === PlayerType.User).length;
 
     this.model.set({ gameOver: true });
     this.model.set({ winner: winner });

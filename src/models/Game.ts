@@ -14,6 +14,7 @@ export type HighScores = {
 
 export type GameProps = {
   level?: Level;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   recognition?: any;
   words?: WordProps[];
   interval?: number;

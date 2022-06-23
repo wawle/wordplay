@@ -8,10 +8,12 @@ interface ModalAttributes<T> {
 
 interface Sync<T> {
   fetch: () => AxiosPromise<T>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   save: (data: any) => AxiosPromise<T>;
 }
 
 interface Events {
+  // eslint-disable-next-line @typescript-eslint/ban-types
   on: (eventName: string, callback: Function) => void;
   trigger: (eventName: string) => void;
 }
@@ -46,7 +48,7 @@ export class Model<T> {
   save(key: keyof T): void {
     this.sync
       .save(this.attrs.get(key))
-      .then((response: AxiosResponse): void => {
+      .then((): void => {
         this.trigger("save");
       })
       .catch((): void => {

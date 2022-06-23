@@ -29,7 +29,7 @@ export class WordPlay extends View<Game, GameProps> {
       })
       .catch((err) => {
         alert(
-          "Please, start the database, to detailed information go to readme file!"
+          "Please, start the database, for detailed information go to readme file!"
         );
 
         this.model.set({ highScores: { easy: 0, normal: 0, veteran: 0 } });
