@@ -18,7 +18,7 @@ export abstract class View<T extends Model<K>, K> {
   }
 
   bindModel(): void {
-    // like react useEffect componentDidUpdate
+    // useEffect componentDidUpdate
     // this.model.on("change", () => {
     //   this.render();
     // });

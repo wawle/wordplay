@@ -1,3 +1,7 @@
 {
-  "data": {}
+  "high-scores": {
+    "easy": 5,
+    "normal": 2,
+    "veteran": 3
+  }
 }

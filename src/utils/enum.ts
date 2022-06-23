@@ -1,7 +1,7 @@
 export enum Level {
-  Easy = 30,
-  Medium = 20,
-  Hard = 10,
+  easy = 30,
+  normal = 20,
+  veteran = 10,
 }
 
 export enum Language {

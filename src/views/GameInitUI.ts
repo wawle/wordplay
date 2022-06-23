@@ -43,17 +43,15 @@ export class GameInitUI extends View<Game, GameProps> {
     const level = parseInt(checkedLevel.value, 10);
     const recognition = this.onInitSpeechRecognition(language);
 
-    const newGame = Game.build({
+    this.model.set({
       level: level,
       recognition: recognition,
       words: [],
       computerWord: "",
       userWord: "",
-      turnTitle: "",
-      gameStart: false,
     });
 
-    const play = new Play(this.parent, newGame);
+    const play = new Play(this.parent, this.model);
 
     play.render();
   };
@@ -61,15 +59,18 @@ export class GameInitUI extends View<Game, GameProps> {
   template(): string {
     return `
     <div>
+      <h4>High Scores</h3>
       <ul>
-        <li> Easy: </li>
-        
+        <li> Easy: ${this.model.get("highScores").easy} </li>
+        <li> Normal: ${this.model.get("highScores").normal} </li>
+        <li> Veteran: ${this.model.get("highScores").veteran} </li>
       </ul>
-      <form name="form" class="form">
+      <div>
         <label for="level">Level: </label>
         <input class="level-radio" type="radio" name="level" value=30 data-level="easy" checked>Easy</input>
-        <input class="level-radio" type="radio" name="level" value=20 data-level="medium">Medium</input>
-        <input class="level-radio" type="radio" name="level" value=10 data-level="hard">Hard</input>
+        <input class="level-radio" type="radio" name="level" value=20 data-level="normal">Normal</input>
+        <input class="level-radio" type="radio" name="level" value=10 data-level="veteran">Veteran</input>
+        <br />
         <br />
         <label for="level">Speaker Language: </label>
         <select name="speaker" id="speaker">
@@ -77,8 +78,9 @@ export class GameInitUI extends View<Game, GameProps> {
           <option value="en-US">English</option>
         </select>
          <br />
+         <br />
         <button class="ready-btn">Ready</button>
-      </form> 
+      </div> 
       </div>`;
   }
 }

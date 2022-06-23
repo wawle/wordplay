@@ -8,8 +8,8 @@ export type WordProps = {
 
 export type HighScores = {
   easy: number;
-  medium: number;
-  hard: number;
+  normal: number;
+  veteran: number;
 };
 
 export type GameProps = {
@@ -22,9 +22,6 @@ export type GameProps = {
   recognize?: boolean;
   gameOver?: boolean;
   highScores?: HighScores;
-  turnTitle?: string;
-  title?: string;
-  gameStart?: boolean;
 };
 
 export class Game extends Model<GameProps> {
@@ -32,7 +29,7 @@ export class Game extends Model<GameProps> {
     return new Game(
       new Attributes<GameProps>(attrs),
       new Events(),
-      new ApiSync("data")
+      new ApiSync("high-scores")
     );
   }
 }

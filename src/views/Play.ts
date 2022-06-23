@@ -1,5 +1,5 @@
-import { WordProps, Game, GameProps } from "../models/Game";
-import { Level, PlayerType } from "../utils/enum";
+import { WordProps, Game, GameProps, HighScores } from "../models/Game";
+import { Language, Level, PlayerType } from "../utils/enum";
 import { GameInitUI } from "./GameInitUI";
 import nameList from "../../names.json";
 import { Word } from "../models/Word";
@@ -15,14 +15,142 @@ export class Play extends View<Game, GameProps> {
     };
   }
 
+  onGameStartClick = (): void => {
+    this.initEventListeners();
+  };
+
   onPlayAgainClick = (): void => {
+    // build a Game model to new Game
     const newGame = Game.build({
-      level: Level.Easy,
+      level: Level.easy,
       words: [],
+      highScores: this.model.get("highScores"),
+      gameOver: false,
+      userWord: "",
+      recognize: false,
+      computerWord: "",
     });
+
     const gameInitUI = new GameInitUI(this.parent, newGame);
     gameInitUI.render();
   };
+
+  initEventListeners() {
+    // pick a random word for computer
+    let initialComputerAnswer =
+      nameList[Math.floor(Math.random() * nameList.length)];
+
+    // add initialWord to word history list
+    this.wordListHandler(initialComputerAnswer, PlayerType.Computer);
+
+    // select inputs and title
+    const computerInput = document.querySelector("#computer-input");
+    const userInput = document.querySelector("#user-input");
+    const turnTitle = document.querySelector("#turn-title");
+
+    // check selected Elements are exists
+    if (!computerInput || !userInput || !turnTitle) {
+      throw new Error("Computer Input || Turn Title || User Input Error");
+    }
+
+    // set the initialWord to computer input value
+    computerInput.setAttribute("value", initialComputerAnswer);
+    // play the initial word
+    this.playWord(initialComputerAnswer);
+    // set the computer inital word to model
+    this.model.set({ computerWord: initialComputerAnswer });
+
+    // listen the user
+    this.recordUser();
+
+    const recognition = this.model.get("recognition");
+
+    recognition.addEventListener("result", (e) => {
+      // get user word
+      const userWord = e.results[0][0].transcript.toLocaleLowerCase();
+      // set user word to model
+      this.model.set({ userWord });
+
+      // check computer input is exists then set user word value
+      if (computerInput) {
+        userInput.setAttribute("value", userWord);
+      }
+      // generate user word history list
+      this.wordListHandler(userWord, PlayerType.User);
+
+      // check user word is valid
+      const isWordValid = this.checkUserAnswer();
+
+      // user word is not valid
+      if (!isWordValid) {
+        // then game over
+        this.gameOver(PlayerType.Computer);
+        // hide the title
+        turnTitle.setAttribute("hidden", "true");
+      }
+
+      // otherwise set turn title to next turns
+      turnTitle.innerHTML = "Computer Turn!";
+    });
+  }
+
+  playWord(word: string): void {
+    const utterance = new SpeechSynthesisUtterance(word);
+    // get language of recognition
+    const language = this.model.get("recognition").lang;
+    utterance.rate = 1;
+    utterance.lang = language;
+    speechSynthesis.speak(utterance);
+  }
+
+  recordUser() {
+    const recognition = this.model.get("recognition");
+    const turnTitle = document.querySelector("#turn-title");
+
+    recognition.start();
+    this.model.set({ recognize: true });
+
+    if (!turnTitle) {
+      throw new Error("Title Error");
+    }
+
+    turnTitle.innerHTML = "Your Turn!";
+    const startBtn = document.querySelector(".game-start-btn");
+
+    if (startBtn) {
+      startBtn.setAttribute("disabled", "true");
+    }
+
+    const timer = document.createElement("h2");
+
+    turnTitle.prepend(timer);
+    // set the time for next turn
+    let remainingSecond = 7;
+    let interval = setInterval(function () {
+      // update timer element by remainingSecond
+      timer.innerHTML = `Remaining Time: ${remainingSecond}`;
+      // decrease one on each second
+      remainingSecond--;
+      // when time is up clear interval
+      if (remainingSecond === -1) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    setTimeout(() => {
+      // when turn time is up stop the recognition
+      recognition.stop();
+      this.model.set({ recognize: false });
+
+      const isWordValid = this.checkUserAnswer();
+      // check user word is valid then change turn otherwise game over
+      if (isWordValid) {
+        this.changeTurn();
+      } else {
+        this.gameOver(PlayerType.Computer);
+      }
+    }, 8000);
+  }
 
   wordListHandler(word: string, type: PlayerType): void {
     const currentWord = {
@@ -30,7 +158,9 @@ export class Play extends View<Game, GameProps> {
       type,
     };
 
+    // get word history list
     const wordList = this.model.get("words") as WordProps[];
+    // add current word to word history list
     this.model.set({ words: [...wordList, currentWord] });
 
     const userWordListEl = document.querySelector("#user-word-list");
@@ -40,15 +170,19 @@ export class Play extends View<Game, GameProps> {
       throw new Error("Word List Error");
     }
 
+    // get user word history list
     const userWords = this.model
       .get("words")
       .filter((word) => word.type === PlayerType.User);
 
     const userWordList = userWords.map((word) => Word.build(word));
+    // create a User word List Collection to render
     const userWordCollection = new Collection<Word, WordProps>(userWordList);
+    // create a WordList component to render user word history list
     const userWordHistory = new WordList(userWordListEl, userWordCollection);
     userWordHistory.render();
 
+    // get computer word history list
     const computerWords: WordProps[] = this.model
       .get("words")
       .filter((word) => word.type === PlayerType.Computer);
@@ -57,35 +191,6 @@ export class Play extends View<Game, GameProps> {
     const computerWordCollection = new Collection<Word, WordProps>(cpWordList);
     const cpWordHistory = new WordList(cpWordListEl, computerWordCollection);
     cpWordHistory.render();
-  }
-
-  playWord(word: string): void {
-    const utterance = new SpeechSynthesisUtterance(word);
-    const language = this.model.get("recognition").lang;
-    utterance.rate = 1;
-    utterance.lang = language;
-    speechSynthesis.speak(utterance);
-  }
-
-  gameOver(winner) {
-    this.model.set({ gameOver: true });
-    this.model.get("recognition").abort();
-    // get word count by user
-    const userWordCount = this.model
-      .get("words")
-      .filter((word) => word.type === PlayerType.User).length;
-
-    const winnerTitle = document.querySelector("#title");
-    const turnTitle = document.querySelector("#turn-title");
-    turnTitle.innerHTML = "";
-    //this.saveHighScoreLocally();
-    //this.gameDiv.insertBefore(winnerTitle, this.turnTitle);
-    if (winner === PlayerType.Computer) {
-      winnerTitle.innerHTML = `Computer Win! Your score is ${userWordCount}`;
-    }
-    if (winner === PlayerType.User) {
-      winnerTitle.innerHTML = `You Win! Your score is ${userWordCount}`;
-    }
   }
 
   checkUserAnswer() {
@@ -108,19 +213,52 @@ export class Play extends View<Game, GameProps> {
     }
   }
 
+  computerAnswer(result) {
+    const answerPossibility = Math.floor(Math.random() * 100);
+
+    if (answerPossibility < this.model.get("level")) {
+      const unknownWord = this.getUnknownWord();
+      this.playWord(unknownWord);
+      this.gameOver(PlayerType.User);
+    }
+
+    if (!this.model.get("gameOver")) {
+      const firstChar = result.charAt(result.length - 1);
+      const wordHistoryList = this.model
+        .get("words")
+        .map((word: WordProps) => word.word);
+
+      let newWord = nameList.find(
+        (element) =>
+          element.charAt(0) === firstChar && !wordHistoryList.includes(element)
+      );
+
+      newWord = newWord ? newWord : "";
+
+      this.wordListHandler(newWord, PlayerType.Computer);
+      return newWord;
+    }
+  }
+
   changeTurn() {
     // get last word of computer from word list
     const words = this.model.get("words");
     const lastWord = words[words.length - 1].word;
     const computerWord = this.computerAnswer(lastWord);
-    this.model.set({ computerWord });
+    const recognition = this.model.get("recognition");
+    const unknownWord = this.getUnknownWord();
 
-    this.playWord(computerWord);
+    const conditionalWord = computerWord ? computerWord : unknownWord;
+
+    this.model.set({ computerWord });
+    if (!this.model.get("gameOver")) {
+      this.playWord(conditionalWord);
+    }
 
     const computerInput = document.querySelector("#computer-input");
 
     if (computerInput) {
-      computerInput.setAttribute("value", computerWord);
+      computerInput.setAttribute("value", conditionalWord);
     }
 
     setInterval(() => {
@@ -130,100 +268,60 @@ export class Play extends View<Game, GameProps> {
     }, 1000);
   }
 
-  recordUser() {
+  getUnknownWord(): string {
     const recognition = this.model.get("recognition");
+    const unknownWord =
+      recognition.lang === Language.Turkish
+        ? "bilemedim"
+        : "I did not find a word to say";
+    return unknownWord;
+  }
+
+  saveHighScore(userWordCount) {
+    const highScores: HighScores = this.model.get("highScores");
+    const level = this.model.get("level");
+
+    // get Level type from level value
+    const levelType = Object.keys(Level).find((key) => Level[key] === level);
+
+    if (!levelType) {
+      throw new Error("Level Type Error");
+    }
+
+    if (highScores[levelType] < userWordCount) {
+      highScores[levelType] = userWordCount;
+      this.model.set({ highScores });
+      this.model.save("highScores");
+    }
+  }
+
+  gameOver(winner) {
+    this.model.set({ gameOver: true });
+    this.model.get("recognition").abort();
+    // get word count by user
+    const userWordCount = this.model
+      .get("words")
+      .filter((word) => word.type === PlayerType.User).length;
+
+    const winnerTitle = document.querySelector("#title");
     const turnTitle = document.querySelector("#turn-title");
 
-    recognition.start();
-    this.model.set({ recognize: true });
-
-    turnTitle.textContent = "Your Turn!";
-    const startBtn = document.querySelector(".game-start-btn");
-
-    if (startBtn) {
-      startBtn.setAttribute("disabled", "true");
+    if (!turnTitle || !winnerTitle) {
+      throw new Error("Title Error");
     }
 
-    const timer = document.createElement("h2");
-
-    turnTitle.prepend(timer);
-    let remainingSecond = 7;
-    let interval = setInterval(function () {
-      timer.textContent = `Remaining Time: ${remainingSecond}`;
-      remainingSecond--;
-      if (remainingSecond === -1) {
-        clearInterval(interval);
-      }
-    }, 1000);
-
-    setTimeout(() => {
-      recognition.stop();
-      this.model.set({ recognize: false });
-      // get last word of user from word list
-      const words = this.model.get("words");
-      const isWordValid = this.checkUserAnswer();
-
-      if (isWordValid) {
-        this.changeTurn();
-      } else {
-        this.gameOver(PlayerType.Computer);
-      }
-    }, 8000);
-  }
-
-  initEventListeners() {
-    let initialComputerAnswer =
-      nameList[Math.floor(Math.random() * nameList.length)];
-
-    this.wordListHandler(initialComputerAnswer, PlayerType.Computer);
-
-    const computerInput = document.querySelector("#computer-input");
-    const userInput = document.querySelector("#user-input");
-    const turnTitle = document.querySelector("#turn-title");
-
-    if (computerInput) {
-      computerInput.setAttribute("value", initialComputerAnswer);
+    turnTitle.innerHTML = "";
+    //this.saveHighScoreLocally();
+    //this.gameDiv.insertBefore(winnerTitle, this.turnTitle);
+    if (winner === PlayerType.Computer) {
+      winnerTitle.innerHTML = `Computer Win! Your score is ${userWordCount}`;
     }
-    this.playWord(initialComputerAnswer);
-    this.model.set({ computerWord: initialComputerAnswer });
-    this.recordUser();
-
-    const recognition = this.model.get("recognition");
-
-    recognition.addEventListener("result", (e) => {
-      const userWord = e.results[0][0].transcript.toLocaleLowerCase();
-      this.model.set({ userWord });
-
-      if (computerInput) {
-        userInput.setAttribute("value", userWord);
-      }
-      this.wordListHandler(userWord, PlayerType.User);
-
-      turnTitle.innerHTML = "Computer Turn!";
-    });
-  }
-
-  computerAnswer(result) {
-    const answerPossibility = Math.floor(Math.random() * 100);
-
-    if (answerPossibility < this.model.get("level")) {
-      this.gameOver(PlayerType.User);
-    } else {
-      const firstChar = result.charAt(result.length - 1);
-      const newWord = nameList.find(
-        (element) =>
-          element.charAt(0) === firstChar &&
-          !this.model.get("words").includes(element)
-      );
-
-      this.wordListHandler(newWord, PlayerType.Computer);
-      return newWord;
+    if (winner === PlayerType.User) {
+      winnerTitle.innerHTML = `You Win! Your score is ${userWordCount}`;
     }
-  }
 
-  onGameStartClick = (): void => {
-    this.initEventListeners();
-  };
+    this.saveHighScore(userWordCount);
+  }
 
   template(): string {
     return `
@@ -241,188 +339,3 @@ export class Play extends View<Game, GameProps> {
     </div>`;
   }
 }
-
-// gameOver(winner: string): void {
-//   const turnTitle = document.querySelector("#turn-title");
-//   const timerEl = document.querySelector("#timer");
-
-//   timerEl.setAttribute("hidden", "true");
-
-//   if (turnTitle) {
-//     turnTitle.innerHTML = `${winner} Win`;
-//   }
-// }
-
-// wordListHandler(word: string, type: PlayerType): void {
-//   const currentWord = {
-//     word: word.toLocaleLowerCase(),
-//     type,
-//   };
-
-//   const wordList = this.model.get("words") as WordProps[];
-//   this.model.set({ words: [...wordList, currentWord] });
-
-//   const userWordListEl = document.querySelector("#user-word-list");
-//   const cpWordListEl = document.querySelector("#cp-word-list");
-
-//   if (!userWordListEl || !cpWordListEl) {
-//     throw new Error("Word List Error");
-//   }
-
-//   const userWords = this.model
-//     .get("words")
-//     .filter((word) => word.type === PlayerType.User);
-
-//   const userWordList = userWords.map((word) => Word.build(word));
-//   const userWordCollection = new Collection<Word, WordProps>(userWordList);
-//   const userWordHistory = new WordList(userWordListEl, userWordCollection);
-//   userWordHistory.render();
-
-//   const computerWords: WordProps[] = this.model
-//     .get("words")
-//     .filter((word) => word.type === PlayerType.Computer);
-
-//   const cpWordList = computerWords.map((word) => Word.build(word));
-//   const computerWordCollection = new Collection<Word, WordProps>(cpWordList);
-//   const cpWordHistory = new WordList(cpWordListEl, computerWordCollection);
-//   cpWordHistory.render();
-// }
-
-// wordIsCorrect(word: string): boolean {
-//   const words = this.model.get("words") as WordProps[];
-//   // check if it is first word then return true
-//   if (words.length === 0) {
-//     return true;
-//   }
-
-//   // get last word from words
-//   const lastWord = words[words.length - 1].word;
-//   const firstCharOfLastWord = word.charAt(0).toLocaleLowerCase();
-
-//   // get last char of last word
-//   const lastCharOfLastWord = lastWord
-//     .charAt(lastWord.length - 1)
-//     .toLocaleLowerCase();
-
-//   // get last char of current word
-//   const lastCharOfCurrentWord = word.charAt(word.length - 1);
-
-//   if (lastCharOfCurrentWord === "ğ") {
-//     return false;
-//   }
-
-//   // check last char of word and first char of last word is the same
-//   return lastCharOfLastWord === firstCharOfLastWord;
-// }
-
-// pickWord(): string {
-//   const words = this.model.get("words");
-//   // only first pick word
-//   if (words.length === 0) {
-//     const randomIndex = Math.floor(Math.random() * nameList.length);
-//     return nameList[randomIndex];
-//   }
-
-//   const wordPossibility = Math.floor(Math.random() * 100);
-//   // if this model level greater than wordPossibility then end the game
-//   if (this.model.get("level") > wordPossibility) {
-//     return "";
-//   }
-
-//   const lastWord = words[words.length - 1].word;
-//   const lastChar = lastWord.charAt(lastWord.length - 1);
-//   // pick a word that starts with last char of last word
-//   const filteredWords = nameList.filter(
-//     (word) => word.charAt(0).toLocaleLowerCase() === lastChar
-//   );
-
-//   const randomIndex = Math.floor(Math.random() * filteredWords.length);
-//   return filteredWords[randomIndex];
-// }
-
-// disableElementHandler(): void {
-//   const startBtn = document.querySelector(".game-start-btn");
-
-//   if (startBtn) {
-//     startBtn.setAttribute("disabled", "true");
-//   }
-// }
-
-// elementHandlerByTurnOwner(owner: PlayerType) {
-//   const turnTitle = document.querySelector("#turn-title");
-//   const ownerName = owner === PlayerType.Computer ? "Computer" : "User";
-//   if (turnTitle) {
-//     turnTitle.innerHTML = `${ownerName} Turn`;
-//   }
-// }
-
-// computerTurn(): void {
-//   this.elementHandlerByTurnOwner(PlayerType.Computer);
-//   const computerWord = this.pickWord();
-//   const isValidWord = this.wordIsCorrect(computerWord);
-
-//   if (!isValidWord) {
-//     return this.gameOver(PlayerType.User);
-//   }
-
-//   this.playWord(computerWord);
-
-//   this.wordListHandler(computerWord, PlayerType.Computer);
-//   const computerInput = document.querySelector("#computer-input");
-
-//   if (computerInput) {
-//     computerInput.setAttribute("value", computerWord);
-//   }
-
-//   return this.userTurn();
-// }
-
-// userTurn(): void {
-//   const timerEl = document.querySelector("#timer");
-//   const turnTitle = document.querySelector("#turn-title");
-
-//   if (turnTitle) {
-//     turnTitle.innerHTML = "User Turn";
-//   }
-
-//   const recognition = this.model.get("recognition");
-//   recognition.start();
-
-//   let remainingSecond = 7;
-
-//   let timerInterval = setInterval(function () {
-//     timerEl.textContent = `Remaining Time: ${remainingSecond}`;
-//     remainingSecond--;
-//     if (remainingSecond === -1) {
-//       clearInterval(timerInterval);
-//     }
-//   }, 1000);
-
-//   const timerTimeOut = setTimeout(() => {
-//     recognition.stop();
-//   }, 8000);
-
-//   recognition.addEventListener("result", (e) => {
-//     const word = e.results[0][0].transcript;
-//     console.log(word);
-
-//     clearInterval(timerInterval);
-//     clearTimeout(timerTimeOut);
-//     const isValidword = this.wordIsCorrect(word);
-
-//     if (!isValidword) {
-//       return this.gameOver(PlayerType.Computer);
-//     }
-
-//     this.wordListHandler(word, PlayerType.User);
-
-//     const userInput = document.querySelector("#user-input");
-
-//     if (userInput) {
-//       userInput.setAttribute("value", word);
-//     }
-
-//     recognition.stop();
-//     return this.computerTurn();
-//   });
-// }

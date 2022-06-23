@@ -1,10 +1,30 @@
+# step 1
+
+npm i -g parcel
+
+# step 2
+
+npm i -g json-server
+
+# step 3
+
+npm install
+
+# step 4
+
+npm run start:parcel
+
+# step 5
+
+npm run start:db
+
 # wordplay
 
 The game is played by deriving a new word from the last letter of the word.
 
 #### chair -> random -> middle -> earth -> horizon -> …
 
-Of course, it is forbidden for the contestants to repeat the terms that have been said before, and within a certain period of time.
+it is forbidden for the contestants to repeat the terms that have been said before, and within a certain period of time.
 
 The chain needs to continue. Do this with JavaScript and webkit's Speech Recognition.
 

@@ -43,9 +43,9 @@ export class Model<T> {
     });
   }
 
-  save(): void {
+  save(key: keyof T): void {
     this.sync
-      .save(this.attrs.getAll())
+      .save(this.attrs.get(key))
       .then((response: AxiosResponse): void => {
         this.trigger("save");
       })
