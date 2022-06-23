@@ -1,11 +1,12 @@
 import { WordProps, Game, GameProps, HighScores } from "../models/Game";
 import { Language, Level, PlayerType } from "../utils/enum";
-import { GameInitUI } from "./GameInitUI";
+import { Ready } from "./Ready";
 import nameList from "../../names.json";
 import { Word } from "../models/Word";
 import { View } from "./common/View";
 import { Collection } from "../models/common";
 import { WordList } from "./word/WordList";
+import { GameOver } from "./GameOver";
 
 export class Play extends View<Game, GameProps> {
   eventsMap(): { [key: string]: () => void } {
@@ -16,7 +17,7 @@ export class Play extends View<Game, GameProps> {
   }
 
   onGameStartClick = (): void => {
-    this.initEventListeners();
+    this.onInitEventListeners();
   };
 
   onPlayAgainClick = (): void => {
@@ -26,16 +27,16 @@ export class Play extends View<Game, GameProps> {
       words: [],
       highScores: this.model.get("highScores"),
       gameOver: false,
-      userWord: "",
       recognize: false,
+      userWord: "",
       computerWord: "",
     });
 
-    const gameInitUI = new GameInitUI(this.parent, newGame);
-    gameInitUI.render();
+    const ready = new Ready(this.parent, newGame);
+    ready.render();
   };
 
-  initEventListeners() {
+  onPickInitialValue(): void {
     // pick a random word for computer
     let initialComputerAnswer =
       nameList[Math.floor(Math.random() * nameList.length)];
@@ -43,6 +44,21 @@ export class Play extends View<Game, GameProps> {
     // add initialWord to word history list
     this.wordListHandler(initialComputerAnswer, PlayerType.Computer);
 
+    // select inputs and title
+    const computerInput = document.querySelector("#computer-input");
+
+    // check selected Elements are exists
+    if (!computerInput) {
+      throw new Error("Computer Input || Turn Title || User Input Error");
+    }
+
+    // set the initialWord to computer input value
+    computerInput.setAttribute("value", initialComputerAnswer);
+    // set the computer inital word to model
+    this.model.set({ computerWord: initialComputerAnswer });
+  }
+
+  onUserRecord(e): void {
     // select inputs and title
     const computerInput = document.querySelector("#computer-input");
     const userInput = document.querySelector("#user-input");
@@ -53,57 +69,34 @@ export class Play extends View<Game, GameProps> {
       throw new Error("Computer Input || Turn Title || User Input Error");
     }
 
-    // set the initialWord to computer input value
-    computerInput.setAttribute("value", initialComputerAnswer);
-    // play the initial word
-    this.playWord(initialComputerAnswer);
-    // set the computer inital word to model
-    this.model.set({ computerWord: initialComputerAnswer });
+    // get user word
+    const userWord = e.results[0][0].transcript.toLocaleLowerCase();
+    // set user word to model
+    this.model.set({ userWord });
 
-    // listen the user
-    this.recordUser();
+    // check computer input is exists then set user word value
+    if (computerInput) {
+      userInput.setAttribute("value", userWord);
+    }
+    // generate user word history list
+    this.wordListHandler(userWord, PlayerType.User);
 
-    const recognition = this.model.get("recognition");
+    // check user word is valid
+    const isWordValid = this.checkUserAnswer();
 
-    recognition.addEventListener("result", (e) => {
-      // get user word
-      const userWord = e.results[0][0].transcript.toLocaleLowerCase();
-      // set user word to model
-      this.model.set({ userWord });
+    // user word is not valid
+    if (!isWordValid) {
+      // then game over
+      this.onGameOver(PlayerType.Computer);
+      // hide the title
+      turnTitle.setAttribute("hidden", "true");
+    }
 
-      // check computer input is exists then set user word value
-      if (computerInput) {
-        userInput.setAttribute("value", userWord);
-      }
-      // generate user word history list
-      this.wordListHandler(userWord, PlayerType.User);
-
-      // check user word is valid
-      const isWordValid = this.checkUserAnswer();
-
-      // user word is not valid
-      if (!isWordValid) {
-        // then game over
-        this.gameOver(PlayerType.Computer);
-        // hide the title
-        turnTitle.setAttribute("hidden", "true");
-      }
-
-      // otherwise set turn title to next turns
-      turnTitle.innerHTML = "Computer Turn!";
-    });
+    // otherwise set turn title to next turns
+    turnTitle.innerHTML = "Computer Turn!";
   }
 
-  playWord(word: string): void {
-    const utterance = new SpeechSynthesisUtterance(word);
-    // get language of recognition
-    const language = this.model.get("recognition").lang;
-    utterance.rate = 1;
-    utterance.lang = language;
-    speechSynthesis.speak(utterance);
-  }
-
-  recordUser() {
+  onUserTurn(): void {
     const recognition = this.model.get("recognition");
     const turnTitle = document.querySelector("#turn-title");
 
@@ -145,11 +138,35 @@ export class Play extends View<Game, GameProps> {
       const isWordValid = this.checkUserAnswer();
       // check user word is valid then change turn otherwise game over
       if (isWordValid) {
-        this.changeTurn();
+        this.onChangeTurn();
       } else {
-        this.gameOver(PlayerType.Computer);
+        this.onGameOver(PlayerType.Computer);
       }
     }, 8000);
+  }
+
+  onInitEventListeners(): void {
+    this.onPickInitialValue();
+    const initialComputerAnswer = this.model.get("computerWord");
+    // play the initial word
+    this.playWord(initialComputerAnswer);
+
+    this.onUserTurn();
+
+    const recognition = this.model.get("recognition");
+
+    recognition.addEventListener("result", (e) => {
+      this.onUserRecord(e);
+    });
+  }
+
+  playWord(word: string): void {
+    const utterance = new SpeechSynthesisUtterance(word);
+    // get language of recognition
+    const language = this.model.get("recognition").lang;
+    utterance.rate = 1;
+    utterance.lang = language;
+    speechSynthesis.speak(utterance);
   }
 
   wordListHandler(word: string, type: PlayerType): void {
@@ -193,7 +210,7 @@ export class Play extends View<Game, GameProps> {
     cpWordHistory.render();
   }
 
-  checkUserAnswer() {
+  checkUserAnswer(): boolean {
     const userWord = this.model.get("userWord");
     const computerWord = this.model.get("computerWord");
 
@@ -213,17 +230,17 @@ export class Play extends View<Game, GameProps> {
     }
   }
 
-  computerAnswer(result) {
+  getComputerWord(lastUserWord: string): string | undefined {
     const answerPossibility = Math.floor(Math.random() * 100);
 
     if (answerPossibility < this.model.get("level")) {
       const unknownWord = this.getUnknownWord();
       this.playWord(unknownWord);
-      this.gameOver(PlayerType.User);
+      this.onGameOver(PlayerType.User);
     }
 
     if (!this.model.get("gameOver")) {
-      const firstChar = result.charAt(result.length - 1);
+      const firstChar = lastUserWord.charAt(lastUserWord.length - 1);
       const wordHistoryList = this.model
         .get("words")
         .map((word: WordProps) => word.word);
@@ -240,12 +257,11 @@ export class Play extends View<Game, GameProps> {
     }
   }
 
-  changeTurn() {
+  onChangeTurn(): void {
     // get last word of computer from word list
     const words = this.model.get("words");
     const lastWord = words[words.length - 1].word;
-    const computerWord = this.computerAnswer(lastWord);
-    const recognition = this.model.get("recognition");
+    const computerWord = this.getComputerWord(lastWord);
     const unknownWord = this.getUnknownWord();
 
     const conditionalWord = computerWord ? computerWord : unknownWord;
@@ -263,7 +279,7 @@ export class Play extends View<Game, GameProps> {
 
     setInterval(() => {
       if (!this.model.get("recognize") && !this.model.get("gameOver")) {
-        this.recordUser();
+        this.onUserTurn();
       }
     }, 1000);
   }
@@ -277,7 +293,7 @@ export class Play extends View<Game, GameProps> {
     return unknownWord;
   }
 
-  saveHighScore(userWordCount) {
+  saveHighScore(userWordCount: number): void {
     const highScores: HighScores = this.model.get("highScores");
     const level = this.model.get("level");
 
@@ -295,13 +311,17 @@ export class Play extends View<Game, GameProps> {
     }
   }
 
-  gameOver(winner) {
-    this.model.set({ gameOver: true });
-    this.model.get("recognition").abort();
+  onGameOver(winner: string): void {
     // get word count by user
     const userWordCount = this.model
       .get("words")
       .filter((word) => word.type === PlayerType.User).length;
+
+    this.model.set({ gameOver: true });
+    this.model.set({ winner: winner });
+    this.model.set({ score: userWordCount });
+
+    this.model.get("recognition").abort();
 
     const winnerTitle = document.querySelector("#title");
     const turnTitle = document.querySelector("#turn-title");
@@ -311,13 +331,12 @@ export class Play extends View<Game, GameProps> {
     }
 
     turnTitle.innerHTML = "";
-    //this.saveHighScoreLocally();
-    //this.gameDiv.insertBefore(winnerTitle, this.turnTitle);
+
     if (winner === PlayerType.Computer) {
-      winnerTitle.innerHTML = `Computer Win! Your score is ${userWordCount}`;
+      new GameOver(winnerTitle, this.model).render();
     }
     if (winner === PlayerType.User) {
-      winnerTitle.innerHTML = `You Win! Your score is ${userWordCount}`;
+      new GameOver(winnerTitle, this.model).render();
     }
 
     this.saveHighScore(userWordCount);
@@ -329,11 +348,11 @@ export class Play extends View<Game, GameProps> {
       <button class="play-again-btn">Play Again</button>
       <h1 id="title">Word Play</h1>
       <h2 id="turn-title"></h2>
-      <input type="text" value="-" name="user-input" id="user-input" />
+      <input type="text" value="" id="user-input" />
       <br />
       <button class="game-start-btn">Start Game</button>
       <br />
-      <input type="text" value="-" name="computer-input" id="computer-input" />
+      <input type="text" value="" id="computer-input" />
       <ol id="user-word-list"></ol>
       <ol id="cp-word-list"></ol>
     </div>`;

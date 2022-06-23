@@ -22,6 +22,8 @@ export type GameProps = {
   recognize?: boolean;
   gameOver?: boolean;
   highScores?: HighScores;
+  winner?: string;
+  score?: number;
 };
 
 export class Game extends Model<GameProps> {

@@ -2,7 +2,7 @@ import { Game, GameProps } from "../models/Game";
 import { Play } from "./Play";
 import { View } from "./common/View";
 
-export class GameInitUI extends View<Game, GameProps> {
+export class Ready extends View<Game, GameProps> {
   eventsMap(): { [key: string]: () => void } {
     return {
       "click:.ready-btn": this.onReadyClick,
@@ -81,6 +81,6 @@ export class GameInitUI extends View<Game, GameProps> {
          <br />
         <button class="ready-btn">Ready</button>
       </div> 
-      </div>`;
+    </div>`;
   }
 }

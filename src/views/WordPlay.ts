@@ -1,5 +1,5 @@
 import { Game, GameProps } from "../models/Game";
-import { GameInitUI } from "./GameInitUI";
+import { Ready } from "./Ready";
 import { View } from "./common/View";
 
 import axios from "axios";
@@ -7,13 +7,13 @@ import axios from "axios";
 export class WordPlay extends View<Game, GameProps> {
   regionsMap(): { [key: string]: string } {
     return {
-      gameInit: ".game-init",
+      ready: ".ready",
     };
   }
 
   onInit(): void {
-    const gameInitUI = new GameInitUI(this.regions.gameInit, this.model);
-    gameInitUI.render();
+    const ready = new Ready(this.regions.ready, this.model);
+    ready.render();
   }
 
   onRender(): void {
@@ -41,7 +41,7 @@ export class WordPlay extends View<Game, GameProps> {
   template(): string {
     return `
     <div> 
-      <div class="game-init"></div>
+      <div class="ready"></div>
     </div>`;
   }
 }
