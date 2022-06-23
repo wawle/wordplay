@@ -1,20 +1,12 @@
 # step 1
 
-npm i -g parcel
+npm i
 
 # step 2
 
-npm i -g json-server
+npm run start
 
 # step 3
-
-npm install
-
-# step 4
-
-npm run start:parcel
-
-# step 5
 
 npm run start:db
 
